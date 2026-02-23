@@ -72,7 +72,7 @@ input:checked+.slider{background:var(--accent);}
 input:checked+.slider::before{transform:translateX(21px);}
 
 .extra-wrap{overflow:hidden;max-height:0;transition:max-height .25s ease,margin-top .25s;margin-top:0;}
-.extra-wrap.open{max-height:80px;margin-top:10px;}
+.extra-wrap.open{max-height:140px;margin-top:10px;}
 .extra-inner{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--al);border-radius:var(--rsm);border:1.5px solid rgba(26,86,219,.2);}
 .extra-inner label{margin:0;white-space:nowrap;font-size:12px;color:var(--accent);flex-shrink:0;}
 .extra-inner input{flex:1;height:40px;font-size:16px;background:#fff;}
@@ -113,6 +113,9 @@ input:checked+.slider::before{transform:translateX(21px);}
 .btn-action.wa{background:#25D366;border-color:#25D366;color:#fff;box-shadow:0 3px 12px rgba(37,211,102,.3);}
 .btn-action.pdf-btn{border-color:#E53E3E;color:#E53E3E;}
 .btn-reset{width:100%;height:44px;background:transparent;border:1.5px solid var(--border);border-radius:var(--rsm);color:var(--tm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;margin-top:10px;touch-action:manipulation;-webkit-appearance:none;appearance:none;}
+.extra-hint{font-size:12px;color:var(--ts);background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:9px 13px;margin-top:8px;line-height:1.4;}
+.extra-hint.anticipi{color:#059669;background:#ECFDF5;border-color:#6EE7B7;}
+.extra-hint.posticipa{color:#D97706;background:#FFFBEB;border-color:#FCD34D;}
 .app-footer{text-align:center;font-size:11px;color:var(--tm);padding:20px 16px 0;opacity:.7;}
 </style>
 </head>
@@ -204,8 +207,9 @@ input:checked+.slider::before{transform:translateX(21px);}
     <div class="extra-wrap" id="extraWrap">
       <div class="extra-inner">
         <label>Minuti (+/-)</label>
-        <input type="number" id="extraMinutes" value="0" min="-90" max="90" placeholder="es. +10 o -10">
+        <input type="number" id="extraMinutes" value="0" min="-90" max="90" placeholder="es. +10 o -10" oninput="updateExtraHint()">
       </div>
+      <div id="extraHint" class="extra-hint">&#9202; Arrivo allo stadio a <strong>80'</strong> dal fischio d'inizio</div>
     </div>
   </div>
 
@@ -261,6 +265,22 @@ function updateCatBadge() {
   } else {
     b.className = 'cat-badge c3';
     b.innerHTML = '&#128309; Countdown n.3 - Rientro -19\' - Speciale';
+  }
+}
+
+function updateExtraHint() {
+  var val = parseInt(document.getElementById('extraMinutes').value) || 0;
+  var hint = document.getElementById('extraHint');
+  var base = 80 - val;
+  if (val === 0 || isNaN(val)) {
+    hint.className = 'extra-hint';
+    hint.innerHTML = '&#9202; Arrivo allo stadio a <strong>80\'</strong> dal fischio d\'inizio';
+  } else if (val < 0) {
+    hint.className = 'extra-hint anticipi';
+    hint.innerHTML = '&#9650; Stai <strong>anticipando</strong> l\'arrivo di <strong>' + Math.abs(val) + ' minuti</strong> &rarr; arrivo a <strong>' + base + '\'</strong> dal fischio';
+  } else {
+    hint.className = 'extra-hint posticipa';
+    hint.innerHTML = '&#9660; Stai <strong>posticipando</strong> l\'arrivo di <strong>' + val + ' minuti</strong> &rarr; arrivo a <strong>' + base + '\'</strong> dal fischio';
   }
 }
 
