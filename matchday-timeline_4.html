@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MatchDay Timeline</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --bg:#EEF1F5; --surface:#fff; --surface2:#F7F8FA; --border:#E2E8F0;
+  --tp:#1A202C; --ts:#4A5568; --tm:#718096;
+  --accent:#1A56DB; --al:#EBF3FF;
+  --cat1:#1A56DB; --cat2:#7C3AED; --cat3:#0891B2;
+  --r:18px; --rsm:12px;
+  --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tp);min-height:100vh;padding-bottom:50px;-webkit-font-smoothing:antialiased;}
+
+.app-header{background:var(--accent);padding:52px 20px 40px;position:relative;overflow:hidden;}
+.app-header::before{content:'';position:absolute;top:-40px;right:-30px;width:180px;height:180px;background:rgba(255,255,255,.07);border-radius:50%;}
+.app-header::after{content:'';position:absolute;bottom:-24px;left:0;right:0;height:48px;background:var(--bg);border-radius:28px 28px 0 0;}
+.header-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;padding:5px 12px;border-radius:20px;margin-bottom:14px;}
+.header-pill .live{width:6px;height:6px;background:#6EE7B7;border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.app-header h1{color:#fff;font-size:30px;font-weight:700;line-height:1.1;letter-spacing:-.03em;position:relative;z-index:1;}
+.app-header h1 span{opacity:.7;font-weight:400;}
+.app-header p{color:rgba(255,255,255,.65);font-size:13px;margin-top:6px;position:relative;z-index:1;}
+
+.main{padding:8px 16px 0;max-width:480px;margin:0 auto;}
+
+.card{background:var(--surface);border-radius:var(--r);padding:20px;margin-bottom:12px;box-shadow:var(--sh);border:1px solid rgba(255,255,255,.8);}
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tm);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.section-label .licon{width:26px;height:26px;border-radius:7px;background:var(--al);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;}
+
+.field{margin-bottom:13px;}
+.field:last-child{margin-bottom:0;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:13px;}
+label{display:block;font-size:12.5px;font-weight:600;color:var(--ts);margin-bottom:6px;}
+
+input[type=time],input[type=number],select{
+  width:100%;height:50px;border:1.5px solid var(--border);border-radius:var(--rsm);
+  background:var(--surface2);color:var(--tp);font-family:'DM Sans',sans-serif;
+  font-size:16px;font-weight:500;padding:0 14px;outline:none;
+  -webkit-appearance:none;appearance:none;
+  transition:border-color .15s,box-shadow .15s;}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,86,219,.12);background:#fff;}
+.select-wrap{position:relative;}
+.select-wrap::after{content:'▾';position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--tm);pointer-events:none;font-size:13px;}
+
+.seg-wrap{display:grid;grid-template-columns:1fr 1fr;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--rsm);padding:3px;margin-bottom:13px;}
+.seg-btn{height:42px;border:none;border-radius:9px;background:transparent;color:var(--tm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;-webkit-appearance:none;appearance:none;display:flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation;transition:background .15s,color .15s;}
+.seg-btn.active{background:var(--accent);color:#fff;box-shadow:var(--sh);}
+
+.cat-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:12px;margin-top:8px;}
+.cat-badge.c1{background:#EBF3FF;color:var(--cat1);}
+.cat-badge.c2{background:#F5F3FF;color:var(--cat2);}
+.cat-badge.c3{background:#ECFEFF;color:var(--cat3);}
+
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--rsm);cursor:pointer;touch-action:manipulation;transition:border-color .15s,background .15s;}
+.toggle-row.on{border-color:var(--accent);background:var(--al);}
+.t-label{font-size:14px;font-weight:600;color:var(--tp);}
+.t-sub{font-size:11.5px;color:var(--tm);margin-top:2px;}
+.toggle-row.on .t-label{color:var(--accent);}
+.toggle{position:relative;width:46px;height:25px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.slider{position:absolute;inset:0;background:#CBD5E0;border-radius:13px;cursor:pointer;transition:background .2s;}
+.slider::before{content:'';position:absolute;width:19px;height:19px;background:#fff;border-radius:50%;left:3px;top:3px;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.18);}
+input:checked+.slider{background:var(--accent);}
+input:checked+.slider::before{transform:translateX(21px);}
+
+.extra-wrap{overflow:hidden;max-height:0;transition:max-height .25s ease,margin-top .25s;margin-top:0;}
+.extra-wrap.open{max-height:80px;margin-top:10px;}
+.extra-inner{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--al);border-radius:var(--rsm);border:1.5px solid rgba(26,86,219,.2);}
+.extra-inner label{margin:0;white-space:nowrap;font-size:12px;color:var(--accent);flex-shrink:0;}
+.extra-inner input{flex:1;height:40px;font-size:16px;background:#fff;}
+
+.btn-calc{width:100%;height:56px;background:var(--accent);color:#fff;border:none;border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:17px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 5px 18px rgba(26,86,219,.38);letter-spacing:-.01em;margin-bottom:12px;touch-action:manipulation;-webkit-appearance:none;appearance:none;}
+
+.timeline-section{display:none;}
+.timeline-section.visible{display:block;}
+.tl-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;}
+.tl-title{font-size:19px;font-weight:700;letter-spacing:-.02em;}
+.tl-meta{font-size:12px;color:var(--tm);margin-top:3px;}
+.match-pill{display:inline-flex;align-items:center;gap:5px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:5px 11px;border-radius:20px;flex-shrink:0;}
+
+.stepper{position:relative;padding-left:52px;}
+.stepper::before{content:'';position:absolute;left:21px;top:28px;bottom:28px;width:2px;background:linear-gradient(to bottom,var(--accent) 0%,#A5B4FC 60%,#6EE7B7 100%);border-radius:2px;}
+.step{position:relative;margin-bottom:10px;animation:stepIn .35s ease both;}
+.step:nth-child(1){animation-delay:.04s}.step:nth-child(2){animation-delay:.09s}.step:nth-child(3){animation-delay:.14s}.step:nth-child(4){animation-delay:.19s}.step:nth-child(5){animation-delay:.24s}.step:nth-child(6){animation-delay:.3s}
+@keyframes stepIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.step-dot{position:absolute;left:-42px;top:13px;width:38px;height:38px;border-radius:50%;background:#fff;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;z-index:1;box-shadow:0 0 0 4px var(--bg);}
+.step-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rsm);padding:11px 14px;box-shadow:var(--sh);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.step-time{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;color:var(--accent);line-height:1;}
+.step-label{font-size:13px;font-weight:600;color:var(--tp);margin-top:2px;}
+.step-sub{font-size:11px;color:var(--tm);margin-top:1px;}
+.step-delta{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--tm);background:var(--surface2);border:1px solid var(--border);padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.step.final .step-dot{background:var(--accent);border-color:var(--accent);width:42px;height:42px;left:-44px;top:11px;box-shadow:0 0 0 4px var(--bg),0 0 0 7px rgba(26,86,219,.15);}
+.step.final .step-card{background:var(--accent);border-color:var(--accent);box-shadow:0 5px 18px rgba(26,86,219,.3);}
+.step.final .step-time{color:#fff;font-size:28px;}
+.step.final .step-label{color:rgba(255,255,255,.9);font-size:14px;}
+.step.final .step-sub{color:rgba(255,255,255,.65);}
+.step.final .step-delta{background:rgba(255,255,255,.2);border-color:transparent;color:#fff;}
+
+.divider{height:1px;background:var(--border);margin:14px 0;}
+.info-strip{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.info-tag{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--tm);font-weight:500;}
+
+.action-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.btn-action{height:50px;border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;border:1.5px solid var(--border);background:var(--surface);color:var(--tp);box-shadow:var(--sh);touch-action:manipulation;-webkit-appearance:none;appearance:none;}
+.btn-action.wa{background:#25D366;border-color:#25D366;color:#fff;box-shadow:0 3px 12px rgba(37,211,102,.3);}
+.btn-action.pdf-btn{border-color:#E53E3E;color:#E53E3E;}
+.btn-reset{width:100%;height:44px;background:transparent;border:1.5px solid var(--border);border-radius:var(--rsm);color:var(--tm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;margin-top:10px;touch-action:manipulation;-webkit-appearance:none;appearance:none;}
+.app-footer{text-align:center;font-size:11px;color:var(--tm);padding:20px 16px 0;opacity:.7;}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-pill"><span class="live"></span> Pre-Match Planner</div>
+  <h1>MatchDay<br><span>Timeline</span></h1>
+  <p>Generatore orari pre-partita &middot; Lega Serie A 2025/26</p>
+</div>
+
+<div class="main">
+
+  <div class="card">
+    <div class="section-label"><span class="licon">&#9917;</span> Info Partita</div>
+    <div class="field">
+      <label>Fischio d'Inizio</label>
+      <input type="time" id="kickoff" value="15:00">
+    </div>
+    <label>Casa / Trasferta</label>
+    <div class="seg-wrap">
+      <button class="seg-btn active" id="btnHome" type="button" onclick="setHomeAway('HOME')">&#127968; HOME</button>
+      <button class="seg-btn" id="btnAway" type="button" onclick="setHomeAway('AWAY')">&#9992; AWAY</button>
+    </div>
+    <div class="field">
+      <label>Stadio</label>
+      <div class="select-wrap">
+        <select id="stadium" onchange="updateCatBadge()">
+          <optgroup label="Countdown n.1 - Rientro -16'">
+            <option value="1|Cagliari (Unipol Domus)">Cagliari - Unipol Domus</option>
+            <option value="1|Como (Stadio Giuseppe Sinigaglia)">Como - Stadio Giuseppe Sinigaglia</option>
+            <option value="1|Cremonese (Stadio Giovanni Zini)">Cremonese - Stadio Giovanni Zini</option>
+            <option value="1|Lecce (Stadio Ettore Giardiniero)">Lecce - Stadio Ettore Giardiniero</option>
+            <option value="1|Parma (Stadio Ennio Tardini)">Parma - Stadio Ennio Tardini</option>
+            <option value="1|Pisa (Arena Garibaldi)">Pisa - Arena Garibaldi / R.Anconetani</option>
+            <option value="1|Sassuolo (Mapei Stadium)">Sassuolo - Mapei Stadium</option>
+            <option value="1|Torino (Allianz Stadium)">Torino - Allianz Stadium</option>
+            <option value="1|Udine (Bluenergy Stadium)">Udine - Bluenergy Stadium</option>
+          </optgroup>
+          <optgroup label="Countdown n.2 - Rientro -18'">
+            <option value="2|Bergamo (Gewiss Stadium)">Bergamo - Gewiss Stadium</option>
+            <option value="2|Bologna (Stadio Renato Dall'Ara)">Bologna - Stadio Renato Dall'Ara</option>
+            <option value="2|Genova (Stadio Luigi Ferraris)">Genova - Stadio Luigi Ferraris</option>
+            <option value="2|Milano (Stadio Giuseppe Meazza)">Milano - Stadio Giuseppe Meazza</option>
+            <option value="2|Napoli (Stadio D.A. Maradona)">Napoli - Stadio D.A. Maradona</option>
+            <option value="2|Roma (Stadio Olimpico)">Roma - Stadio Olimpico</option>
+            <option value="2|Torino (Stadio Olimpico Grande Torino)">Torino - Stadio Olimpico Grande Torino</option>
+            <option value="2|Verona (Stadio Marcantonio Bentegodi)">Verona - Stadio Marcantonio Bentegodi</option>
+          </optgroup>
+          <optgroup label="Countdown n.3 - Rientro -19' (Speciale)">
+            <option value="3|Firenze (Stadio Artemio Franchi)">Firenze - Stadio Artemio Franchi</option>
+          </optgroup>
+        </select>
+      </div>
+      <div id="catBadge" class="cat-badge c1">&#9889; Countdown n.1 - Rientro -16'</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label"><span class="licon">&#9201;</span> Durate</div>
+    <div class="field-row">
+      <div class="field">
+        <label>Riunione Tecnica (min)</label>
+        <input type="number" id="meeting" value="15" min="5" max="60">
+      </div>
+      <div class="field">
+        <label>Riscaldamento (min)</label>
+        <input type="number" id="warmup" value="25" min="5" max="60">
+      </div>
+    </div>
+    <div class="field">
+      <label>Spostamento Hotel - Stadio (min)</label>
+      <input type="number" id="travel" value="12" min="1" max="180">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label"><span class="licon">&#9881;</span> Opzioni</div>
+    <div class="toggle-row" id="extraToggleRow" onclick="toggleExtra()">
+      <div>
+        <div class="t-label">Extra Time</div>
+        <div class="t-sub">Anticipa o posticipa arrivo allo stadio (default 80)</div>
+      </div>
+      <div class="toggle">
+        <input type="checkbox" id="extraToggle">
+        <span class="slider"></span>
+      </div>
+    </div>
+    <div class="extra-wrap" id="extraWrap">
+      <div class="extra-inner">
+        <label>Minuti (+/-)</label>
+        <input type="number" id="extraMinutes" value="0" min="-90" max="90" placeholder="es. +10 o -10">
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-calc" type="button" onclick="calculate()">&#9889; Genera Timeline</button>
+
+  <div class="timeline-section" id="timelineSection">
+    <div class="card">
+      <div class="tl-header">
+        <div>
+          <div class="tl-title">Timeline Pre-Partita</div>
+          <div class="tl-meta" id="tlMeta">-</div>
+        </div>
+        <div class="match-pill" id="matchPill">HOME</div>
+      </div>
+      <div class="stepper" id="stepper"></div>
+      <div class="divider"></div>
+      <div class="info-strip" id="infoStrip"></div>
+      <div class="action-row">
+        <button class="btn-action wa" type="button" onclick="shareWhatsApp()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </button>
+        <button class="btn-action pdf-btn" type="button" onclick="generatePDF()">&#128196; Genera PDF</button>
+      </div>
+      <button class="btn-reset" type="button" onclick="resetView()">&#8634; Nuova Timeline</button>
+    </div>
+  </div>
+
+  <div class="app-footer">MatchDay Timeline - Lega Serie A 2025/26</div>
+</div>
+
+<script>
+var homeAway = 'HOME';
+var lastResult = null;
+var L2F = {1:2, 2:4, 3:4};
+
+function setHomeAway(v) {
+  homeAway = v;
+  document.getElementById('btnHome').className = 'seg-btn' + (v === 'HOME' ? ' active' : '');
+  document.getElementById('btnAway').className = 'seg-btn' + (v === 'AWAY' ? ' active' : '');
+}
+
+function updateCatBadge() {
+  var sel = document.getElementById('stadium');
+  var cat = parseInt(sel.value.split('|')[0]);
+  var b = document.getElementById('catBadge');
+  if (cat === 1) {
+    b.className = 'cat-badge c1';
+    b.innerHTML = '&#9889; Countdown n.1 - Rientro -16\'';
+  } else if (cat === 2) {
+    b.className = 'cat-badge c2';
+    b.innerHTML = '&#128336; Countdown n.2 - Rientro -18\'';
+  } else {
+    b.className = 'cat-badge c3';
+    b.innerHTML = '&#128309; Countdown n.3 - Rientro -19\' - Speciale';
+  }
+}
+
+function toggleExtra() {
+  var cb = document.getElementById('extraToggle');
+  var wrap = document.getElementById('extraWrap');
+  var row = document.getElementById('extraToggleRow');
+  cb.checked = !cb.checked;
+  if (cb.checked) {
+    wrap.className = 'extra-wrap open';
+    row.className = 'toggle-row on';
+  } else {
+    wrap.className = 'extra-wrap';
+    row.className = 'toggle-row';
+  }
+}
+
+function toMins(t) {
+  var p = t.split(':');
+  return parseInt(p[0]) * 60 + parseInt(p[1]);
+}
+
+function toTime(mins) {
+  var m = ((mins % 1440) + 1440) % 1440;
+  var h = Math.floor(m / 60);
+  var mn = m % 60;
+  return (h < 10 ? '0' : '') + h + ':' + (mn < 10 ? '0' : '') + mn;
+}
+
+function calculate() {
+  var kickoffStr = document.getElementById('kickoff').value;
+  var warmup  = parseInt(document.getElementById('warmup').value)  || 25;
+  var meeting = parseInt(document.getElementById('meeting').value) || 15;
+  var travel  = parseInt(document.getElementById('travel').value)  || 12;
+  var cb = document.getElementById('extraToggle');
+  var extra = cb.checked ? (parseInt(document.getElementById('extraMinutes').value) || 0) : 0;
+  var stadVal = document.getElementById('stadium').value;
+  var cat = parseInt(stadVal.split('|')[0]);
+  var stadName = stadVal.split('|')[1];
+  var returnMin = cat === 1 ? 16 : cat === 3 ? 19 : 18;
+  var l2f = L2F[cat] || 2;
+  var kickoff = toMins(kickoffStr);
+
+  var tArrivo   = kickoff - 80 + extra;
+  var tPartenza = tArrivo - travel;
+  var tRiunione = tPartenza - meeting;
+  var tRientro  = kickoff - returnMin;
+  var tRisc     = tRientro - warmup - l2f;
+
+  lastResult = {
+    kickoffStr:kickoffStr, warmup:warmup, meeting:meeting, travel:travel,
+    extra:extra, cat:cat, stadName:stadName, returnMin:returnMin, l2f:l2f,
+    inizioRiunione: toTime(tRiunione),
+    partenzaHotel:  toTime(tPartenza),
+    arrivoStadio:   toTime(tArrivo),
+    inizioRisc:     toTime(tRisc),
+    rientroSpog:    toTime(tRientro),
+    kickoff:        kickoffStr
+  };
+
+  renderTimeline(lastResult);
+}
+
+function renderTimeline(r) {
+  var cl = r.cat === 3 ? 'n.3 (Spec.)' : 'n.' + r.cat;
+  var es = r.extra !== 0 ? (r.extra > 0 ? '+' : '') + r.extra + "'" : '';
+
+  var steps = [
+    {time:r.inizioRiunione, icon:'&#128221;', label:'Inizio Riunione Tecnica',   sub:'Durata: '+r.meeting+"'",            delta:'-'+(r.meeting+r.travel+80-r.extra)+"'"},
+    {time:r.partenzaHotel,  icon:'&#128652;', label:"Partenza dall'Hotel",       sub:'Spostamento: '+r.travel+"'",        delta:'-'+(r.travel+80-r.extra)+"'"},
+    {time:r.arrivoStadio,   icon:'&#127967;', label:'Arrivo allo Stadio',        sub:r.extra!==0?'Extra time: '+es:"Fischio -80'", delta:'-'+(80-r.extra)+"'"},
+    {time:r.inizioRisc,     icon:'&#127939;', label:'Pronti per Riscaldamento',  sub:'Durata: '+r.warmup+"' - Ingresso campo: "+r.l2f+"'", delta:'-'+(r.returnMin+r.warmup+r.l2f)+"'"},
+    {time:r.rientroSpog,    icon:'&#128260;', label:'Rientro negli Spogliatoi',  sub:'Countdown '+cl+' - Fischio -'+r.returnMin+"'", delta:'-'+r.returnMin+"'"},
+    {time:r.kickoff,        icon:'&#9917;',   label:"FISCHIO D'INIZIO",          sub:r.stadName+' - '+homeAway, delta:'', final:true}
+  ];
+
+  var html = '';
+  for (var i = 0; i < steps.length; i++) {
+    var s = steps[i];
+    html += '<div class="step'+(s.final?' final':'')+'">'+
+      '<div class="step-dot">'+s.icon+'</div>'+
+      '<div class="step-card">'+
+        '<div>'+
+          '<div class="step-time">'+s.time+'</div>'+
+          '<div class="step-label">'+s.label+'</div>'+
+          '<div class="step-sub">'+s.sub+'</div>'+
+        '</div>'+
+        '<div class="step-delta">'+s.delta+'</div>'+
+      '</div>'+
+    '</div>';
+  }
+  document.getElementById('stepper').innerHTML = html;
+  document.getElementById('matchPill').textContent = homeAway;
+  document.getElementById('tlMeta').textContent = r.stadName;
+
+  var infoHTML = '<span class="info-tag">Countdown '+cl+'</span>'+
+    '<span class="info-tag">Rientro -'+r.returnMin+"'</span>"+
+    '<span class="info-tag">Spost. '+r.travel+"'</span>"+
+    (r.extra!==0?'<span class="info-tag">Extra '+es+'</span>':'');
+  document.getElementById('infoStrip').innerHTML = infoHTML;
+
+  var sec = document.getElementById('timelineSection');
+  sec.className = 'timeline-section visible';
+  setTimeout(function(){ sec.scrollIntoView({behavior:'smooth',block:'start'}); }, 80);
+}
+
+function buildText(r) {
+  var cl = r.cat===3?'n.3 (Speciale)':'n.'+r.cat;
+  var el = r.extra!==0?'\nExtra time: '+(r.extra>0?'+':'')+r.extra+"'":'';
+  return "MATCHDAY TIMELINE - "+homeAway+"\n"+
+    r.stadName+"\n"+
+    "Countdown "+cl+" - Rientro -"+r.returnMin+"'\n"+
+    "--------------------\n\n"+
+    r.inizioRiunione+"  Inizio Riunione Tecnica ("+r.meeting+"')\n"+
+    r.partenzaHotel +"  Partenza dall'Hotel\n"+
+    r.arrivoStadio  +"  Arrivo allo Stadio"+el+"\n"+
+    r.inizioRisc    +"  Pronti per Riscaldamento ("+r.warmup+"')\n"+
+    r.rientroSpog   +"  Rientro negli Spogliatoi (-"+r.returnMin+"')\n"+
+    r.kickoff       +"  FISCHIO D'INIZIO\n\n"+
+    "--------------------\n"+
+    "Spostamento Hotel-Stadio: "+r.travel+"'\n"+
+    "Generato con MatchDay Timeline Generator";
+}
+
+function shareWhatsApp() {
+  if (!lastResult) return;
+  window.open('https://wa.me/?text='+encodeURIComponent(buildText(lastResult)), '_blank');
+}
+
+function generatePDF() {
+  if (!lastResult) { alert('Genera prima la timeline'); return; }
+  if (!window.jspdf || !window.jspdf.jsPDF) { alert('Libreria PDF non caricata'); return; }
+  var r = lastResult;
+  var doc = new window.jspdf.jsPDF({unit:'mm',format:'a5',orientation:'portrait'});
+  var W = 148;
+  var cl = r.cat===3?'n.3 (Spec.)':'n.'+r.cat;
+
+  doc.setFillColor(26,86,219);
+  doc.rect(0,0,W,34,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text('MATCHDAY TIMELINE',12,13);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  doc.text(homeAway+' - '+r.stadName,12,21);
+  doc.text('Countdown '+cl+' - Spost.: '+r.travel+"'"+(r.extra!==0?' - Extra: '+(r.extra>0?'+':'')+r.extra+"'":''),12,28);
+
+  var ps = [
+    {time:r.inizioRiunione, label:'Inizio Riunione Tecnica',  sub:'Durata: '+r.meeting+"'", delta:'-'+(r.meeting+r.travel+80-r.extra)+"'"},
+    {time:r.partenzaHotel,  label:"Partenza dall'Hotel",      sub:'Spostamento: '+r.travel+"'", delta:'-'+(r.travel+80-r.extra)+"'"},
+    {time:r.arrivoStadio,   label:'Arrivo allo Stadio',       sub:r.extra!==0?'Extra: '+(r.extra>0?'+':'')+r.extra+"'":"Fischio -80'", delta:'-'+(80-r.extra)+"'"},
+    {time:r.inizioRisc,     label:'Pronti per Riscaldamento', sub:'Durata: '+r.warmup+"'", delta:'-'+(r.returnMin+r.warmup+r.l2f)+"'"},
+    {time:r.rientroSpog,    label:'Rientro negli Spogliatoi', sub:'Countdown '+cl+' -'+r.returnMin+"'", delta:'-'+r.returnMin+"'"},
+    {time:r.kickoff,        label:"FISCHIO D'INIZIO",         sub:r.stadName+' - '+homeAway, delta:'', final:true}
+  ];
+
+  var y = 42;
+  for (var i = 0; i < ps.length; i++) {
+    var s = ps[i]; var h = 17;
+    if (s.final) {
+      doc.setFillColor(26,86,219);
+      doc.roundedRect(8,y,W-16,h+2,3,3,'F');
+      doc.setTextColor(255,255,255);
+      doc.setFont('helvetica','bold'); doc.setFontSize(13);
+      doc.text(s.time,14,y+8);
+      doc.setFontSize(9); doc.text(s.label,42,y+8);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      doc.text(s.sub,42,y+14);
+      y += h+6;
+    } else {
+      doc.setFillColor(240,242,245);
+      doc.roundedRect(8,y,W-16,h,2,2,'F');
+      doc.setDrawColor(226,232,240);
+      doc.roundedRect(8,y,W-16,h,2,2,'S');
+      doc.setTextColor(26,86,219); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+      doc.text(s.time,13,y+7);
+      doc.setTextColor(26,32,44); doc.setFontSize(9);
+      doc.text(s.label,40,y+7);
+      doc.setTextColor(113,128,150); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+      doc.text(s.sub,40,y+13);
+      doc.setTextColor(26,86,219); doc.setFontSize(8);
+      doc.text(s.delta,W-14,y+9,{align:'right'});
+      if (i < ps.length-1) {
+        doc.setDrawColor(26,86,219); doc.setLineWidth(0.25);
+        doc.line(21,y+h,21,y+h+4);
+      }
+      y += h+4;
+    }
+  }
+  y += 4;
+  doc.setFontSize(7); doc.setTextColor(113,128,150);
+  doc.text('Generato con MatchDay Timeline Generator - Lega Serie A 2025/26',W/2,y,{align:'center'});
+  doc.save('timeline_'+r.kickoff.replace(':','')+'_'+homeAway+'_cat'+r.cat+'.pdf');
+}
+
+function resetView() {
+  document.getElementById('timelineSection').className = 'timeline-section';
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
